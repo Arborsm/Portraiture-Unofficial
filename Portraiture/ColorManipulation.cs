@@ -1,13 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
-
 namespace Portraiture
 {
     public class ColorManipulation
     {
-        public float saturation;
         public float light;
         public List<Color> palette;
+        public float saturation;
 
         public ColorManipulation(List<Color> palette, float saturation = 100, float light = 100)
         {

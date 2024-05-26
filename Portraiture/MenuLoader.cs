@@ -1,27 +1,23 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-
-
 using Portraiture.PlatoUI;
-
-using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Menus;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-
 namespace Portraiture
 {
     public class MenuLoader
     {
 
-        const int listElementHeight = 128;
-        const int numPortraits = 7;
-        const int listElementWidth = (listElementHeight - margin * 2) * numPortraits + (margin * (numPortraits + 1));
+        private const int listElementHeight = 128;
+        private const int numPortraits = 7;
+        private const int listElementWidth = (listElementHeight - margin * 2) * numPortraits + margin * (numPortraits + 1);
 
-        const int elementsPerPage = 3;
-        const int margin = 10;
+        private const int elementsPerPage = 3;
+        private const int margin = 10;
 
         public static void OpenMenu(IClickableMenu prioMenu = null)
         {
@@ -37,23 +33,21 @@ namespace Portraiture
 
             Texture2D circle = PyDraw.getCircle(margin * 9, Color.White);
 
-            UIElement container = UIElement.GetContainer("PortraitureMenu", 0, UIHelper.GetCentered(0, 0, listElementWidth + margin * 2, listElementHeight * elementsPerPage + margin * 3), 1);
-            UIElement listbox = new UIElement("ListBox", UIHelper.GetCentered(0, 0, listElementWidth + margin * 2, listElementHeight * elementsPerPage + margin * 3), 0, UIHelper.PlainTheme, Color.Black * 0.5f, 1, false);
+            UIElement container = UIElement.GetContainer("PortraitureMenu", 0, UIHelper.GetCentered(0, 0, listElementWidth + margin * 2, listElementHeight * elementsPerPage + margin * 3));
+            UIElement listbox = new UIElement("ListBox", UIHelper.GetCentered(0, 0, listElementWidth + margin * 2, listElementHeight * elementsPerPage + margin * 3), 0, UIHelper.PlainTheme, Color.Black * 0.5f);
             UIElementList list = new UIElementList("PortraitFolders", true, 0, 1, 5, 0, true, UIHelper.GetCentered(0, 0, listElementWidth, listElementHeight * elementsPerPage + margin), UIHelper.GetFixed(0, 0, listElementWidth, listElementHeight), folders.ToArray());
-            UIElement closeBtn = UIElement.GetImage(circle, Color.White, "CloseBtn", 0.8f, 99, UIHelper.GetAttachedDiagonal(listbox, false, true, margin, -1 * margin, margin * 3, margin * 3)).WithInteractivity(click: (point, right, release, hold, element) =>
-              {
-                  if (release)
-                      menu?.exitThisMenu();
-              }, hover: (point, hoverIn, element) =>
-             {
-                  if (hoverIn != element.WasHover)
-                      Game1.playSound("smallSelect");
+            UIElement closeBtn = UIElement.GetImage(circle, Color.White, "CloseBtn", 0.8f, 99, UIHelper.GetAttachedDiagonal(listbox, false, true, margin, -1 * margin, margin * 3, margin * 3)).WithInteractivity(click: (_, _, release, _, _) =>
+            {
+                if (release)
+                    // ReSharper disable once AccessToModifiedClosure
+                    menu?.exitThisMenu();
+            }, hover: (_, hoverIn, element) =>
+            {
+                if (hoverIn != element.WasHover)
+                    Game1.playSound("smallSelect");
 
-                  if (hoverIn)
-                      element.Opacity = 1f;
-                  else
-                      element.Opacity = 0.8f;
-              });
+                element.Opacity = hoverIn ? 1f : 0.8f;
+            });
 
             closeBtn.Add(UIElement.GetImage(circle, Color.DarkCyan, "CloseBtn_Inner", 1, 0, UIHelper.GetCentered(0, 0, margin, margin)));
             container.Add(closeBtn);
@@ -64,14 +58,14 @@ namespace Portraiture
             UIElement up = UIElement.GetImage(PyDraw.getFade(margin * 2, margin * 2, Color.White, Color.Gray, false), Color.DarkCyan, "ScrollUp", 1, 0, UIHelper.GetTopCenter());
             UIElement down = UIElement.GetImage(PyDraw.getFade(margin * 2, margin * 2, Color.White, Color.Gray, false), Color.DarkCyan, "ScrollDown", 1, 0, UIHelper.GetBottomCenter());
             UIElement bar = UIElement.GetImage(PyDraw.getFade(margin * 2, listElementHeight * 2 - margin * 4, Color.White, Color.Gray, false), Color.White, "ScrollBar", 1, 0, UIHelper.GetCentered());
-            UIElement scrollPoint = UIElement.GetImage(circle, Color.DarkCyan, "ScrollPoint", 1, 0, (t, p) =>
-                 {
-                     int w = p.Bounds.Width;
-                     int h = p.Bounds.Height / (f - 2);
-                     int x = 0;
-                     int y = list.Position * h;
-                     return new Rectangle(p.Bounds.X + x, p.Bounds.Y + y, w, h);
-                 });
+            UIElement scrollPoint = UIElement.GetImage(circle, Color.DarkCyan, "ScrollPoint", 1, 0, (_, p) =>
+            {
+                int w = p.Bounds.Width;
+                int h = p.Bounds.Height / (f - 2);
+                const int x = 0;
+                int y = list.Position * h;
+                return new Rectangle(p.Bounds.X + x, p.Bounds.Y + y, w, h);
+            });
 
             if (f > 3)
             {
@@ -82,11 +76,11 @@ namespace Portraiture
                 listbox.Add(scrollBar);
             }
             menu = UIHelper.OpenMenu("PortraitureMenu", container);
-            menu.exitFunction = new IClickableMenu.onExit(() =>
+            menu.exitFunction = () =>
             {
                 if (prioMenu != null)
                     Game1.activeClickableMenu = prioMenu;
-            });
+            };
         }
 
         public static void hoverScrollBar(Point point, bool hoverIn, UIElement element)
@@ -96,66 +90,64 @@ namespace Portraiture
 
         public static void clickScrollBar(Point point, bool right, bool release, bool hold, UIElement element)
         {
-            if (!right && release)
+            if (right || !release)
+                return;
+            bool scrolled = element.Id switch
             {
-                bool scrolled = false;
-                if (element.Id == "ScrollUp")
-                    scrolled = (element.Base as UIElementList).ChangePosition(-1);
+                "ScrollUp" => ((UIElementList)element.Base).ChangePosition(-1),
+                "ScrollDown" => ((UIElementList)element.Base).ChangePosition(1),
+                _ => false
+            };
 
-                if (element.Id == "ScrollDown")
-                    scrolled = (element.Base as UIElementList).ChangePosition(1);
-
-                if (scrolled)
-                    Game1.playSound("smallSelect");               
-            }
+            if (scrolled)
+                Game1.playSound("smallSelect");
         }
 
         public static UIElement GetElementForFolder(string folder)
         {
 
-            if (folder == null)
-                folder = "Null";
+            folder ??= "Null";
 
             bool active = TextureLoader.getFolderName() == folder;
 
-            UIElement element = new UIElement(folder, UIHelper.Fill, 0, UIHelper.PlainTheme, Color.White, active ? 1f : 0.75f, false).AsSelectable("Folder", (s, e) =>
-             {
-                 e.Opacity = s ? 1f : 0.7f;
+            UIElement element = new UIElement(folder, UIHelper.Fill, 0, UIHelper.PlainTheme, Color.White, active ? 1f : 0.75f).AsSelectable("Folder", (s, e) =>
+            {
+                e.Opacity = s ? 1f : 0.7f;
 
-                 e.GetElementById(e.Id + "_BgName").Color = s ? Color.DarkCyan : Color.Black;
+                e.GetElementById(e.Id + "_BgName").Color = s ? Color.DarkCyan : Color.Black;
 
-                 if (s)
-                     Game1.playSound("coin");
+                if (s)
+                    Game1.playSound("coin");
 
-                 if (e.Base != null)
-                 {
-                     if (s)
-                         foreach (UIElement selected in e.Base.GetSelected())
-                             if (selected != e)
-                                 selected.Deselect();
+                if (e.Base != null)
+                {
+                    if (s)
+                        foreach (UIElement selected in e.Base.GetSelected())
+                            if (selected != e)
+                                selected.Deselect();
 
-                     if (!s)
-                         if ((new List<UIElement>(e.Base.GetSelected())).Count == 0)
-                             e.Select();
-                 }
+                    if (!s)
+                        if (new List<UIElement>(e.Base.GetSelected()).Count == 0)
+                            e.Select();
+                }
 
-                 if(s)
-                     setFolder(e.Id);
+                if (s)
+                    setFolder(e.Id);
 
-             }).WithInteractivity(hover:(point,hoverIn,e) =>
-             {
-                 if (e.IsSelected)
-                     return;
+            }).WithInteractivity(hover: (_, hoverIn, e) =>
+            {
+                if (e.IsSelected)
+                    return;
 
-                 if(hoverIn != e.WasHover)
-                     Game1.playSound("smallSelect");
+                if (hoverIn != e.WasHover)
+                    Game1.playSound("smallSelect");
 
-                 if (hoverIn)
-                     e.Opacity = e.IsSelected ? 1f : 0.9f;
-                 else
-                     e.Opacity = e.IsSelected ? 1f : 0.75f;
+                if (hoverIn)
+                    e.Opacity = e.IsSelected ? 1f : 0.9f;
+                else
+                    e.Opacity = e.IsSelected ? 1f : 0.75f;
 
-             });
+            });
 
             element.IsSelected = active;
             element.Overflow = true;
@@ -163,7 +155,7 @@ namespace Portraiture
             float i = 0;
             bool scaled = false;
 
-            if(folder == "Vanilla")
+            if (folder == "Vanilla")
             {
                 List<NPC> npcs = new List<NPC>();
                 for (int c = 0; c < numPortraits; c++)
@@ -176,9 +168,9 @@ namespace Portraiture
 
                     Texture2D p = Game1.content.Load<Texture2D>(@"Portraits/" + npc.Name);
 
-                    if (p is Texture2D portrait)
+                    if (p != null)
                     {
-                        Texture2D t = portrait is ScaledTexture2D st ? st.STexture : portrait;
+                        Texture2D t = p is ScaledTexture2D st ? st.STexture : p;
                         int mx = Math.Max(t.Width / 2, 64);
                         Rectangle s = new Rectangle(0, 0, mx, mx);
                         int w = listElementHeight - margin * 2;
@@ -186,14 +178,14 @@ namespace Portraiture
                         LastX = x + w;
                         i++;
 
-                        UIElement pic = UIElement.GetImage(portrait, Color.White, folder + "_Portrait_" + npc.Name, 1f / (i + 1), 0, UIHelper.GetTopLeft(x, margin, w)).WithSourceRectangle(s);
+                        UIElement pic = UIElement.GetImage(p, Color.White, folder + "_Portrait_" + npc.Name, 1f / (i + 1), 0, UIHelper.GetTopLeft(x, margin, w)).WithSourceRectangle(s);
                         element.Add(pic);
                     }
                 }
             }
             else
-                foreach (var texture in TextureLoader.pTextures.Where(k => k.Key.StartsWith(folder)))
-                    if (texture.Value is Texture2D portrait)
+                foreach (KeyValuePair<string, Texture2D> texture in TextureLoader.pTextures.Where(k => k.Key.StartsWith(folder)))
+                    if (texture.Value is { } portrait)
                     {
                         if (i >= numPortraits)
                         {
@@ -212,25 +204,25 @@ namespace Portraiture
                         LastX = x + w;
                         i++;
 
-                        UIElement pic = UIElement.GetImage(portrait, Color.White, folder + "_Portrait_" + texture.Key, 1f / (i+1), 0, UIHelper.GetTopLeft(x, margin, w)).WithSourceRectangle(s);
+                        UIElement pic = UIElement.GetImage(portrait, Color.White, folder + "_Portrait_" + texture.Key, 1f / (i + 1), 0, UIHelper.GetTopLeft(x, margin, w)).WithSourceRectangle(s);
 
                         element.Add(pic);
                     }
 
-            UITextElement name = new UITextElement(folder, Game1.smallFont, Color.White,0.5f, 1f, folder + "_Name", 2, UIHelper.GetTopLeft(margin, margin));
-            UITextElement num = new UITextElement(folder == "Vanilla" ? " " : i.ToString(), Game1.tinyFont, Color.Black,1f, 1f, folder + "_Num", 2, UIHelper.GetBottomRight(-1* margin, -1* margin));
-            
+            UITextElement name = new UITextElement(folder, Game1.smallFont, Color.White, 0.5f, 1f, folder + "_Name", 2, UIHelper.GetTopLeft(margin, margin));
+            UITextElement num = new UITextElement(folder == "Vanilla" ? " " : i.ToString(NumberFormatInfo.CurrentInfo), Game1.tinyFont, Color.Black, 1f, 1f, folder + "_Num", 2, UIHelper.GetBottomRight(-1 * margin, -1 * margin));
 
-            var size = (Game1.smallFont.MeasureString(folder) * 0.5f).toPoint();
-            var scaleText = scaled ? "128+" : "64";
-            var scaleSize = (Game1.smallFont.MeasureString("XX") * 0.5f).toPoint();
+
+            Point size = (Game1.smallFont.MeasureString(folder) * 0.5f).toPoint();
+            string scaleText = scaled ? "128+" : "64";
+            Point scaleSize = (Game1.smallFont.MeasureString("XX") * 0.5f).toPoint();
             int sIBSize = Math.Max(scaleSize.X, scaleSize.Y) + margin * 2;
             Point bgSize = new Point(size.X + margin * 4, size.Y + margin * 2);
             Texture2D bgName = PyDraw.getFade(bgSize.X * 4, bgSize.Y * 4, Color.White * 0.8f, Color.Transparent);
 
             UIElement nameBg = UIElement.GetImage(bgName, active ? Color.DarkCyan : Color.Black, folder + "_BgName", 1, 1, UIHelper.GetTopLeft(0, 0, bgSize.X));
             UIElement scaleInfoText = new UITextElement(scaleText, Game1.smallFont, Color.White, 0.5f, 1, folder + "_Scale", 2, UIHelper.GetCentered());
-            UIElement scaleInfoBackground = UIElement.GetImage(PyDraw.getCircle((int)(sIBSize * (scaled ? 4 : 1)), Color.White), Color.LightGray,folder + "_ScaleBG",1,1, UIHelper.GetTopRight(-1 * margin, margin, sIBSize));
+            UIElement scaleInfoBackground = UIElement.GetImage(PyDraw.getCircle(sIBSize * (scaled ? 4 : 1), Color.White), Color.LightGray, folder + "_ScaleBG", 1, 1, UIHelper.GetTopRight(-1 * margin, margin, sIBSize));
 
             scaleInfoBackground.Add(scaleInfoText);
             element.Add(name);

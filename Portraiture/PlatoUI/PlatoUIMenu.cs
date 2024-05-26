@@ -1,39 +1,26 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
 using System;
-
 namespace Portraiture.PlatoUI
 {
-    public class PlatoUIMenu : IClickableMenu
+    public sealed class PlatoUIMenu : IClickableMenu
     {
-        public virtual UIElement BaseMenu { get; set; }
-        public virtual Texture2D Background { get; set; }
-        public virtual Color BackgroundColor { get; set; } = Color.White;
-        protected int BackgroundPos = 0;
-        protected virtual bool BackgroundIsMoving { get; set; } = false;
+        private int BackgroundPos;
 
-        public virtual Point LastMouse { get; set; } = Point.Zero;
-
-        protected virtual Action<SpriteBatch> BeforeDrawAction { get; set; } = null;
-        protected virtual Action<SpriteBatch> AfterDrawAction { get; set; } = null;
-
-
-        public virtual string Id { get; set; }
-
-        private float lastUIZoom = 1f;
+        private readonly float lastUIZoom;
 
         public PlatoUIMenu(string id, UIElement element, bool clone = false, Texture2D background = null, Color? backgroundColor = null, bool movingBackground = false)
-            :base(0,0,Game1.viewport.Width,Game1.viewport.Height,false)
+            : base(0, 0, Game1.viewport.Width, Game1.viewport.Height)
         {
 #if ANDROID
-
 #else
             lastUIZoom = Game1.options.desiredUIScale;
             Game1.options.desiredUIScale = Game1.options.desiredBaseZoomLevel;
-            PortraitureMod.helper.Events.GameLoop.UpdateTicked += GameLoop_UpdateTicked; ;
+            PortraitureMod.helper.Events.GameLoop.UpdateTicked += GameLoop_UpdateTicked;
 #endif
 
             if (backgroundColor.HasValue)
@@ -42,16 +29,27 @@ namespace Portraiture.PlatoUI
             Background = background;
             Id = id;
             BaseMenu = UIElement.GetContainer("CurrentMenu");
-            if(element != null)
+            if (element != null)
                 BaseMenu.Add(clone ? element.Clone().WithBase(BaseMenu) : element.WithBase(BaseMenu));
 
             BaseMenu.UpdateBounds();
         }
+        public UIElement BaseMenu { get; set; }
+        public Texture2D Background { get; set; }
+        public Color BackgroundColor { get; set; } = Color.White;
+        private bool BackgroundIsMoving { get; set; }
 
-        private void GameLoop_UpdateTicked(object sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
+        public Point LastMouse { get; set; } = Point.Zero;
+
+        private Action<SpriteBatch> BeforeDrawAction { get; set; } = null;
+        private Action<SpriteBatch> AfterDrawAction { get; set; } = null;
+
+
+        public string Id { get; set; }
+
+        private void GameLoop_UpdateTicked(object sender, UpdateTickedEventArgs e)
         {
 #if ANDROID
-
 #else
             if (!(Game1.activeClickableMenu is PlatoUIMenu))
             {
@@ -61,7 +59,7 @@ namespace Portraiture.PlatoUI
 #endif
         }
 
-        public virtual void ClearMenu(UIElement element = null)
+        public void ClearMenu(UIElement element = null)
         {
             BaseMenu.Clear(element);
         }
@@ -69,15 +67,15 @@ namespace Portraiture.PlatoUI
         public override void draw(SpriteBatch b)
         {
             BeforeDrawAction?.Invoke(b);
-            this.drawBackground(b);
+            drawBackground(b);
             UIHelper.DrawElement(b, BaseMenu);
-            this.drawMouse(b);
+            drawMouse(b);
             AfterDrawAction?.Invoke(b);
         }
 
         public override void drawBackground(SpriteBatch b)
         {
-            if (Background is Texture2D)
+            if (Background is not null)
             {
                 if (BackgroundIsMoving)
                 {
@@ -96,13 +94,13 @@ namespace Portraiture.PlatoUI
                 }
             }
         }
-        
+
         public override void gameWindowSizeChanged(Rectangle oldBounds, Rectangle newBounds)
         {
-            this.xPositionOnScreen = 0;
-            this.yPositionOnScreen = 0;
-            this.width = newBounds.Width;
-            this.height = newBounds.Height;
+            xPositionOnScreen = 0;
+            yPositionOnScreen = 0;
+            width = newBounds.Width;
+            height = newBounds.Height;
 
             UIElement.Viewportbase.UpdateBounds();
             BaseMenu.UpdateBounds();
@@ -128,7 +126,7 @@ namespace Portraiture.PlatoUI
 
             BaseMenu.PerformUpdate(time);
         }
-        
+
         public override void receiveKeyPress(Keys key)
         {
             BaseMenu.PerformKey(key, false);
@@ -137,7 +135,7 @@ namespace Portraiture.PlatoUI
 
         public override void releaseLeftClick(int x, int y)
         {
-            BaseMenu.PerformClick(new Point(x, y),false,true, false);
+            BaseMenu.PerformClick(new Point(x, y), false, true, false);
         }
 
         public override void receiveScrollWheelAction(int direction)
@@ -148,7 +146,7 @@ namespace Portraiture.PlatoUI
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
-            BaseMenu.PerformClick(new Point(x, y),false, false, false);
+            BaseMenu.PerformClick(new Point(x, y), false, false, false);
         }
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
@@ -159,11 +157,6 @@ namespace Portraiture.PlatoUI
         public override void leftClickHeld(int x, int y)
         {
             BaseMenu.PerformClick(new Point(x, y), false, false, true);
-        }
-
-        public override bool readyToClose()
-        {
-            return base.readyToClose();
         }
     }
 }

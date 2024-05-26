@@ -1,21 +1,12 @@
 ﻿using BmFont;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-
 using StardewModdingAPI;
 using System.Collections.Generic;
 using System.IO;
-
 namespace Portraiture.PlatoUI
 {
-    public class UIFont
+    public sealed class UIFont
     {
-        public virtual string Id { get; set; } = "";
-        public virtual FontFile FontFile { get; set; } = null;
-
-        public virtual Dictionary<char, FontChar> CharacterMap { get; set; } = null;
-
-        public virtual List<Texture2D> FontPages { get; set; } = null;
 
         public UIFont(IModHelper helper, string assetName, string id = "")
         {
@@ -37,7 +28,15 @@ namespace Portraiture.PlatoUI
             FontPages = new List<Texture2D>();
 
             foreach (FontPage page in FontFile.Pages)
+            {
                 FontPages.Add(helper.ModContent.Load<Texture2D>($"{Path.GetDirectoryName(assetName)}/{page.File}"));
+            }
         }
+        public string Id { get; set; }
+        public FontFile FontFile { get; set; }
+
+        public Dictionary<char, FontChar> CharacterMap { get; set; }
+
+        public List<Texture2D> FontPages { get; set; }
     }
 }

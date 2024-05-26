@@ -1,9 +1,8 @@
 ﻿using StardewModdingAPI;
 using System.Collections.Generic;
-
 namespace Portraiture
 {
-    class PConfig
+    internal class PConfig
     {
         public SButton changeKey { get; set; } = SButton.P;
         public SButton menuKey { get; set; } = SButton.M;
@@ -23,7 +22,6 @@ namespace Portraiture
         public string active { get; set; } = "none";
 
         public PresetCollection presets { get; set; } = new PresetCollection();
-
     }
 
     public class PresetCollection

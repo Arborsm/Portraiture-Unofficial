@@ -3,12 +3,17 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using System;
 using System.Collections.Generic;
-
 namespace Portraiture
 {
     public class PyDraw
     {
-        internal static GraphicsDevice Device => Game1.graphics.GraphicsDevice;
+        internal static GraphicsDevice Device
+        {
+            get
+            {
+                return Game1.graphics.GraphicsDevice;
+            }
+        }
 
         public static Texture2D getPattern(int width, int height, params Texture2D[] textures)
         {
@@ -25,7 +30,7 @@ namespace Portraiture
                 textureColors.Add(colors);
             }
 
-            return getRectangle(width, height, (x,y, w, h) =>
+            return getRectangle(width, height, (x, y, _, _) =>
             {
                 int t = 0;
                 int x2 = x;
@@ -33,13 +38,13 @@ namespace Portraiture
 
                 if (x >= tWidth)
                 {
-                    t = (int)Math.Floor(x / tWidth * 1f);
+                    t = (int)Math.Floor(x / (float)tWidth * 1f);
                     x2 = x2 % tWidth;
                 }
 
                 if (y >= tHeight)
                 {
-                    t += (int)Math.Floor(y / tHeight * 1f);
+                    t += (int)Math.Floor(y / (float)tHeight * 1f);
                     y2 = y2 % tHeight;
                 }
 
@@ -72,15 +77,16 @@ namespace Portraiture
 
             List<Color[]> placements = new List<Color[]>();
             int j = 0;
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < n; i++)
+            {
                 placements.Add(textureColors[j]);
                 j++;
                 if (j >= textureColors.Count)
                     j = 0;
             }
-            return getRectangle(width, height, (x, y, w, h) =>
+            return getRectangle(width, height, (x, y, _, _) =>
             {
-                int t = (x / tWidth) + ((y / tHeight) * (tpw));
+                int t = x / tWidth + y / tHeight * tpw;
 
                 int xt = x % tWidth;
                 int yt = y % tHeight;
@@ -91,14 +97,11 @@ namespace Portraiture
 
         public static Texture2D getBorderedRectangle(int width, int height, Color color, int border, Color borderColor)
         {
-            return getRectangle(width, height, (x, y, w, h) =>
+            return getRectangle(width, height, (x, y, _, _) =>
             {
-                Point p = new Point(x, y);
-
                 if (x < border || y < border || x >= width - border || y >= height - border)
                     return borderColor;
-                else
-                    return color;
+                return color;
             });
         }
 
@@ -115,24 +118,23 @@ namespace Portraiture
             Point c = r.Center;
             int sDist = radius * radius;
 
-            return getRectangle(diameter, diameter, (x, y , w, h) =>
+            return getRectangle(diameter, diameter, (x, y, _, _) =>
             {
                 Point p = new Point(x, y);
 
                 if (p.GetSquaredDistance(c) > sDist)
                     return color2;
-                else
-                    return color;
+                return color;
             });
         }
 
         public static Texture2D getFade(int width, int height, Color color1, Color color2, bool horizontal = true)
         {
-            return getRectangle(width, height, (x,y, w, h) =>
+            return getRectangle(width, height, (x, y, _, _) =>
             {
                 float nx = (float)(x + 1) / width;
                 float ny = (float)(y + 1) / height;
-                return Color.Lerp(color1,color2, horizontal ? nx : ny);
+                return Color.Lerp(color1, color2, horizontal ? nx : ny);
             });
         }
 
@@ -144,14 +146,13 @@ namespace Portraiture
             Point c = r.Center;
             int sDist = radius * radius;
 
-            return getRectangle(diameter, diameter, (x, y, w, h) =>
+            return getRectangle(diameter, diameter, (x, y, _, _) =>
             {
                 Point p = new Point(x, y);
                 float d = p.GetSquaredDistance(c);
                 if (d > sDist)
                     return backColor;
-                else
-                    return Color.Lerp(color1, color2, d / sDist);
+                return Color.Lerp(color1, color2, d / sDist);
 
             });
         }
@@ -164,17 +165,16 @@ namespace Portraiture
             image.GetData(imageData);
             mask.GetData(maskData);
 
-            return getRectangle(image.Width, image.Height, (i, w, h) =>
+            return getRectangle(image.Width, image.Height, (i, _, _) =>
             {
                 if (maskData.Length <= i)
-                    return (inverted ? imageData[i] : Color.Transparent);
-                else
-                    return imageData[i] * (!inverted ? ((float) maskData[i].A / 255f) : ((float)(255f - maskData[i].A) / 255f));
+                    return inverted ? imageData[i] : Color.Transparent;
+                return imageData[i] * (!inverted ? maskData[i].A / 255f : (255f - maskData[i].A) / 255f);
             });
         }
-            public static Texture2D getRectangle(int width, int height, Color color)
+        public static Texture2D getRectangle(int width, int height, Color color)
         {
-            return getRectangle(width, height, (i, w, h) => color);
+            return getRectangle(width, height, (_, _, _) => color);
         }
 
         public static Texture2D getRectangle(int width, int height, Func<int, int, int, int, Color> colorPicker)
@@ -186,7 +186,7 @@ namespace Portraiture
             {
                 int x = i % width;
                 int y = (i - x) / width;
-                data[i] = colorPicker(x,y, width, height);
+                data[i] = colorPicker(x, y, width, height);
             }
             rect.SetData(data);
             return rect;

@@ -4,14 +4,13 @@ using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.IO;
-
 namespace Portraiture
 {
 
     public static class PyTextures
     {
         /* Basics */
-        
+
         public static Texture2D clone(this Texture2D t)
         {
             return t.getArea(new Rectangle(0, 0, t.Width, t.Height));
@@ -19,26 +18,24 @@ namespace Portraiture
 
         public static Texture2D loadTextureData(Stream stream)
         {
-            using (BinaryReader reader = new BinaryReader(stream))
+            using BinaryReader reader = new BinaryReader(stream);
+            int width = reader.ReadInt32();
+            int height = reader.ReadInt32();
+            int length = reader.ReadInt32();
+            Color[] data = new Color[length];
+
+            for (int i = 0; i < data.Length; i++)
             {
-                var width = reader.ReadInt32();
-                var height = reader.ReadInt32();
-                var length = reader.ReadInt32();
-                var data = new Color[length];
-
-                for (int i = 0; i < data.Length; i++)
-                {
-                    var r = reader.ReadByte();
-                    var g = reader.ReadByte();
-                    var b = reader.ReadByte();
-                    var a = reader.ReadByte();
-                    data[i] = new Color(r, g, b, a);
-                }
-
-                var texture = new Texture2D(Game1.graphics.GraphicsDevice, width, height);
-                texture.SetData(data, 0, data.Length);
-                return texture;
+                byte r = reader.ReadByte();
+                byte g = reader.ReadByte();
+                byte b = reader.ReadByte();
+                byte a = reader.ReadByte();
+                data[i] = new Color(r, g, b, a);
             }
+
+            Texture2D texture = new Texture2D(Game1.graphics.GraphicsDevice, width, height);
+            texture.SetData(data, 0, data.Length);
+            return texture;
         }
 
         public static Color clone(this Color t)
@@ -48,13 +45,10 @@ namespace Portraiture
 
         public static int getDistanceTo(this Color current, Color match)
         {
-            int redDifference;
-            int greenDifference;
-            int blueDifference;
 
-            redDifference = current.R - match.R;
-            greenDifference = current.G - match.G;
-            blueDifference = current.B - match.B;
+            int redDifference = current.R - match.R;
+            int greenDifference = current.G - match.G;
+            int blueDifference = current.B - match.B;
 
             return redDifference * redDifference + greenDifference * greenDifference + blueDifference * blueDifference;
         }
@@ -104,7 +98,7 @@ namespace Portraiture
                     }
 
             for (int x = t.Width - 1; x > -1; x--)
-                for (int y = t.Height -1 ; y > -1; y--)
+                for (int y = t.Height - 1; y > -1; y--)
                     if (data[y * t.Width + x].A != 0)
                     {
                         if (trimX2 == -1 || x > trimX2)
@@ -117,7 +111,7 @@ namespace Portraiture
             int trimW = trimX2 - trimX;
             int trimH = trimY2 - trimY;
 
-            Texture2D result = t.getArea(new Rectangle(trimX,trimY,trimW,trimH));
+            Texture2D result = t.getArea(new Rectangle(trimX, trimY, trimW, trimH));
             return result;
         }
 
@@ -171,7 +165,7 @@ namespace Portraiture
             t.GetData(colorData);
             for (int x = 0; x < t.Width; x++)
                 for (int y = 0; y < t.Height; y++)
-                    if(colorData[x * t.Height + y] == from)
+                    if (colorData[x * t.Height + y] == from)
                         colorData[x * t.Height + y] = to;
             t.SetData(colorData);
             return t;
@@ -218,9 +212,9 @@ namespace Portraiture
 
         public static Color multiplyWith(this Color color1, Color color2)
         {
-            color1.R = (byte)MathHelper.Min(((color1.R * color2.R) / 255), 255);
-            color1.G = (byte)MathHelper.Min(((color1.G * color2.G) / 255), 255);
-            color1.B = (byte)MathHelper.Min(((color1.B * color2.B) / 255), 255);
+            color1.R = (byte)MathHelper.Min(color1.R * color2.R / 255, 255);
+            color1.G = (byte)MathHelper.Min(color1.G * color2.G / 255, 255);
+            color1.B = (byte)MathHelper.Min(color1.B * color2.B / 255, 255);
             color1.A = color1.A;
 
             return color1;
@@ -228,9 +222,9 @@ namespace Portraiture
 
         public static Color setSaturation(this Color t, float saturation, Vector3? saturationMultiplier = null)
         {
-            Vector3 m = saturationMultiplier.HasValue ? saturationMultiplier.Value : new Vector3(0.2125f, 0.7154f, 0.0721f);
+            Vector3 m = saturationMultiplier ?? new Vector3(0.2125f, 0.7154f, 0.0721f);
             float l = m.X * t.R + m.Y * t.G + m.Z * t.B;
-            float s = 1f - (saturation / 100);
+            float s = 1f - saturation / 100;
 
             float newR = t.R;
             float newG = t.G;
@@ -280,16 +274,16 @@ namespace Portraiture
 
         public static float GetSquaredDistance(this Vector2 point1, Vector2 point2)
         {
-            float a = (point1.X - point2.X);
-            float b = (point1.Y - point2.Y);
-            return (a * a) + (b * b);
+            float a = point1.X - point2.X;
+            float b = point1.Y - point2.Y;
+            return a * a + b * b;
         }
 
         public static float GetSquaredDistance(this Point point1, Point point2)
         {
-            float a = (point1.X - point2.X);
-            float b = (point1.Y - point2.Y);
-            return (a * a) + (b * b);
+            float a = point1.X - point2.X;
+            float b = point1.Y - point2.Y;
+            return a * a + b * b;
         }
 
         public static Point GetPoint(this Vector2 vector)
@@ -304,19 +298,13 @@ namespace Portraiture
 
         public static Texture2D ScaleUpTexture(this Texture2D texture, float scale, bool asScaledTexture2D = true, Rectangle? forcedSourceRectangle = null)
         {
-            Color[] orgColor = new Color[texture.Width * texture.Height];
-            Color[] scaledColor = new Color[(int)(orgColor.Length * scale)];
             int sWidth = (int)(texture.Width * scale);
             int sHeight = (int)(texture.Height * scale);
-            Texture2D sTexture;
-            using (MemoryStream mem = new MemoryStream())
-            {
-                texture.SaveAsPng(mem, sWidth, sHeight);
-                sTexture = Texture2D.FromStream(texture.GraphicsDevice, mem);
-            }
+            using MemoryStream mem = new MemoryStream();
+            texture.SaveAsPng(mem, sWidth, sHeight);
+            Texture2D sTexture = Texture2D.FromStream(texture.GraphicsDevice, mem);
 
-                return sTexture;
+            return sTexture;
         }
     }
 }
-

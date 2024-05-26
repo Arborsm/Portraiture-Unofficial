@@ -1,16 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-
+using System.Diagnostics.CodeAnalysis;
 namespace Portraiture
 {
 
+    [SuppressMessage("ReSharper", "VirtualMemberCallInConstructor")]
     public class ScaledTexture2D : Texture2D
     {
-        public float Scale{ get; set; }
-        public virtual Texture2D STexture { get; set; }
-        public Rectangle? ForcedSourceRectangle { get; set; } = null;
-
-        public bool AsOverlay { get; set; } = false;
 
         public ScaledTexture2D(GraphicsDevice graphicsDevice, int width, int height)
             : base(graphicsDevice, width, height)
@@ -55,18 +51,23 @@ namespace Portraiture
         }
 
         public ScaledTexture2D(GraphicsDevice graphicsDevice, int width, int height, Texture2D scaledTexture, float scale, Rectangle? forcedSourceRectangle = null)
-            :base(graphicsDevice, width,height)
+            : base(graphicsDevice, width, height)
         {
             Scale = scale;
             STexture = scaledTexture;
             ForcedSourceRectangle = forcedSourceRectangle;
         }
+        public float Scale { get; set; }
+        public virtual Texture2D STexture { get; set; }
+        public Rectangle? ForcedSourceRectangle { get; set; }
+
+        public bool AsOverlay { get; set; } = false;
 
         public static ScaledTexture2D FromTexture(Texture2D orgTexture, Texture2D scaledTexture, float scale, Rectangle? forcedSourceRectangle = null)
         {
             Color[] data = new Color[orgTexture.Width * orgTexture.Height];
             orgTexture.GetData(data);
-            ScaledTexture2D result = new ScaledTexture2D(orgTexture.GraphicsDevice, orgTexture.Width,orgTexture.Height,scaledTexture,scale,forcedSourceRectangle);
+            ScaledTexture2D result = new ScaledTexture2D(orgTexture.GraphicsDevice, orgTexture.Width, orgTexture.Height, scaledTexture, scale, forcedSourceRectangle);
             result.SetData(data);
             return result;
         }

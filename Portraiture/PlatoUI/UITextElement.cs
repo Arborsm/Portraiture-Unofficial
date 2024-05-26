@@ -1,22 +1,27 @@
-﻿using BmFont;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-
-using StardewModdingAPI;
 using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace Portraiture.PlatoUI
 {
-    public class UITextElement : UIElement
+    public sealed class UITextElement : UIElement
     {
-        protected string _text;
-        public virtual Point TextSize { get; set; }
 
-        public virtual string FontId { get; set; } = "";
+        private float _scale = 1f;
+        private string _text;
 
-        public virtual string Text
+        public UITextElement(string text, SpriteFont font, Color color, float scale = 1f, float opacity = 1f, string id = "element", int z = 0, Func<UIElement, UIElement, Rectangle> positioner = null)
+            : base(id, positioner, z, null, null, opacity)
+        {
+            Scale = scale;
+            Font = font;
+            Text = text;
+            TextColor = color;
+        }
+        public Point TextSize { get; set; }
+
+        public string FontId { get; set; } = "";
+
+        public string Text
         {
             get
             {
@@ -30,9 +35,7 @@ namespace Portraiture.PlatoUI
             }
         }
 
-        protected float _scale = 1f;
-
-        public virtual float Scale
+        public float Scale
         {
             get
             {
@@ -45,19 +48,10 @@ namespace Portraiture.PlatoUI
             }
         }
 
-        public virtual SpriteFont Font { get; set; }
-        public virtual Color TextColor { get; set; } = Color.Black;
+        public SpriteFont Font { get; set; }
+        public Color TextColor { get; set; }
 
-        public UITextElement(string text, SpriteFont font, Color color, float scale = 1f, float opacity = 1f, string id = "element", int z = 0, Func<UIElement, UIElement, Rectangle> positioner = null)
-            :base(id, positioner, z, null, null, opacity, false)
-        {
-            Scale = scale;
-            Font = font;
-            Text = text;
-            TextColor = color;
-        }
-
-        public virtual string GetText()
+        public string GetText()
         {
             if (!OutOfBounds || Text == null || Font == null || Text == "")
                 return Text;
@@ -76,14 +70,14 @@ namespace Portraiture.PlatoUI
             return r;
         }
 
-        public virtual Point MeasureString()
+        public Point MeasureString()
         {
             if (FontId == "" && Font != null)
             {
-                var p = Font.MeasureString(_text).toPoint();
+                Point p = Font.MeasureString(_text).toPoint();
                 TextSize = new Point((int)(p.X * Scale), (int)(p.Y * Scale));
             }
-            else if(FontId != "")
+            else if (FontId != "")
                 TextSize = UIFontRenderer.MeasureString(FontId, _text, Scale);
 
             return TextSize;
@@ -91,10 +85,9 @@ namespace Portraiture.PlatoUI
 
         public override UIElement Clone(string id = null)
         {
-            if (id == null)
-                id = Id;
+            id ??= Id;
 
-            UIElement e = new UITextElement(Text,Font,TextColor,Scale, Opacity,id,Z,Positioner);
+            UIElement e = new UITextElement(Text, Font, TextColor, Scale, Opacity, id, Z, Positioner);
 
             CopyBasicAttributes(ref e);
 
@@ -104,7 +97,7 @@ namespace Portraiture.PlatoUI
             return e;
         }
 
-        public virtual UITextElement WithFont(string id)
+        public UITextElement WithFont(string id)
         {
             FontId = id;
             MeasureString();

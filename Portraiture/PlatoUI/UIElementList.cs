@@ -2,23 +2,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 namespace Portraiture.PlatoUI
 {
-    public class UIElementList : UIElement
+    public sealed class UIElementList : UIElement
     {
-        public int Position { get; private set; } = 0;
-
-        public Func<UIElement, UIElement, Rectangle> ElementPositioner { get; set; }
 
         public UIElement InnerList;
-        protected bool IsVertical { get; set; } = true;
-
-        protected int Margin = 0;
 
         public List<UIElement> ListElements = new List<UIElement>();
 
-        protected bool Scrollable { get; set; } = true;
+        private readonly int Margin;
 
         public UIElementList(string id = "element", bool vertical = true, int z = 0, float opacity = 1f, int margin = 0, int startPosition = 0, bool scrollable = true, Func<UIElement, UIElement, Rectangle> positioner = null, Func<UIElement, UIElement, Rectangle> elementPositioner = null, params UIElement[] elements)
             : base(id, positioner, z, null, Color.White, opacity, true)
@@ -26,10 +19,7 @@ namespace Portraiture.PlatoUI
             Margin = margin;
             Position = 0;
             Scrollable = scrollable;
-            if (elementPositioner == null)
-                ElementPositioner = UIHelper.Fill;
-            else
-                ElementPositioner = elementPositioner;
+            ElementPositioner = elementPositioner ?? UIHelper.Fill;
 
             IsVertical = vertical;
             Overflow = false;
@@ -40,8 +30,14 @@ namespace Portraiture.PlatoUI
                 if (!ChangePosition(1))
                     break;
         }
+        public int Position { get; private set; }
 
-        public virtual void Scroll(int direction)
+        public Func<UIElement, UIElement, Rectangle> ElementPositioner { get; set; }
+        private bool IsVertical { get; set; }
+
+        private bool Scrollable { get; set; }
+
+        public void Scroll(int direction)
         {
             if (direction > 0)
                 direction = -1;
@@ -53,10 +49,9 @@ namespace Portraiture.PlatoUI
 
         public override UIElement Clone(string id = null)
         {
-            if (id == null)
-                id = Id;
+            id ??= Id;
 
-            UIElement e = new UIElementList(id, IsVertical,Z,Opacity,Margin,Position,Scrollable, Positioner,ElementPositioner);
+            UIElement e = new UIElementList(id, IsVertical, Z, Opacity, Margin, Position, Scrollable, Positioner, ElementPositioner);
             CopyBasicAttributes(ref e);
 
             List<UIElement> elements = new List<UIElement>();
@@ -75,10 +70,10 @@ namespace Portraiture.PlatoUI
             if (disattach)
                 element.Disattach();
 
-            UIElement container;
-            container = new UIElement(element.Id + "_Container", ElementPositioner, Z, null, null, 1f, true);
+            UIElement container = new UIElement(element.Id + "_Container", ElementPositioner, Z, null, null, 1f, true);
 
-            if (Children.Count > 0) {
+            if (Children.Count > 0)
+            {
                 UIElement last = Children.Last();
                 if (!IsVertical)
                     container.OffsetX = last.OffsetX + Margin + last.Bounds.Width;
@@ -86,6 +81,7 @@ namespace Portraiture.PlatoUI
                     container.OffsetY = last.OffsetY + Margin + last.Bounds.Height;
             }
             container.Add(element.WithBase(this));
+            // ReSharper disable once BaseMethodCallWithDefaultParameter
             base.Add(container.WithBase(this));
             ListElements.Add(element);
         }
@@ -121,25 +117,25 @@ namespace Portraiture.PlatoUI
                 child.PerformHover(point);
         }
 
-        public virtual bool NextPosition()
+        public bool NextPosition()
         {
             return ChangePosition(1);
         }
 
-        public virtual bool PreviousPosition()
+        public bool PreviousPosition()
         {
             return ChangePosition(-1);
         }
 
-        public virtual bool ChangePosition(int steps)
+        public bool ChangePosition(int steps)
         {
-            if (steps == 0 || Children.Count < 2 || (steps > 0 && !Children.Last().OutOfBounds) || (steps < 0 && Position == 0))
+            if (steps == 0 || Children.Count < 2 || steps > 0 && !Children.Last().OutOfBounds || steps < 0 && Position == 0)
                 return false;
 
             UIElement first = Children.First();
 
-            Position+= steps;
-            
+            Position += steps;
+
 
             foreach (UIElement child in Children)
                 if (IsVertical)
@@ -152,9 +148,9 @@ namespace Portraiture.PlatoUI
             return true;
         }
 
-        public virtual void ResetPositions(bool children = true)
+        public void ResetPositions(bool children = true)
         {
-            base.UpdateBounds(children);
+            UpdateBounds(children);
 
             int t = Position;
             while (Position > 0)
@@ -176,12 +172,7 @@ namespace Portraiture.PlatoUI
                 if (!NextPosition())
                     break;
 
-            base.UpdateBounds(children);
-        }
-
-        public override void UpdateBounds(bool children = true)
-        {
-            base.UpdateBounds(children);
+            UpdateBounds(children);
         }
     }
 }

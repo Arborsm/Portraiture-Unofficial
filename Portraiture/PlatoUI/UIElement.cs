@@ -1,26 +1,46 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-
-using StardewValley;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-
 namespace Portraiture.PlatoUI
 {
     public class UIElement
     {
-        public static UIElement Viewportbase = UIElement.GetContainer("Viewport",0,UIHelper.GetViewport(),1);
+        public static UIElement Viewportbase = GetContainer("Viewport", 0, UIHelper.GetViewport());
 
-        public virtual UIElement Base { get; set; } = null;
-        public static UIElement DragElement { get; set; } = null;
-        public virtual string Id { get; set; }
+        private Rectangle? _bounds;
 
-        protected float _rotation = 0f;
-        public virtual float Rotation
+        private SpriteEffects _flip = SpriteEffects.None;
+
+        private Vector2 _origin = Vector2.Zero;
+
+        private UIElement _parent;
+
+        private float _rotation;
+
+        public UIElement(string id = "element", Func<UIElement, UIElement, Rectangle> positioner = null, int z = 0, Texture2D theme = null, Color? color = null, float opacity = 1f, bool container = false)
+        {
+            Id = id;
+
+            color ??= Color.White;
+
+            Theme = theme;
+            Color = color.Value;
+            IsContainer = container;
+            Opacity = opacity;
+
+            Z = z;
+
+            Positioner = positioner ?? UIHelper.Fill;
+        }
+
+        public UIElement Base { get; set; }
+        public static UIElement DragElement { get; set; }
+        public string Id { get; set; }
+        public float Rotation
         {
             get
             {
@@ -34,15 +54,13 @@ namespace Portraiture.PlatoUI
                 _rotation = value;
             }
         }
-
-        protected SpriteEffects _flip = SpriteEffects.None;
-        public virtual SpriteEffects SpriteEffects {
+        public SpriteEffects SpriteEffects
+        {
             get
             {
                 if (Parent == null || Parent.SpriteEffects == SpriteEffects.None || _flip != SpriteEffects.None)
                     return _flip;
-                else
-                    return _flip;
+                return _flip;
             }
 
             set
@@ -52,16 +70,14 @@ namespace Portraiture.PlatoUI
 
         }
 
-        protected Vector2 _origin = Vector2.Zero;
-
-        public virtual Vector2 Origin
+        public Vector2 Origin
         {
             get
             {
                 if (Parent == null)
                     return _origin;
 
-                return (Parent.Origin + _origin);
+                return Parent.Origin + _origin;
             }
 
             set
@@ -69,15 +85,13 @@ namespace Portraiture.PlatoUI
                 _origin = value;
             }
         }
-        public virtual List<string> Types { get; set; } = new List<string>();
-
-        protected UIElement _parent = null;
-        public virtual UIElement Parent
+        public List<string> Types { get; set; } = new List<string>();
+        public UIElement Parent
         {
             get
             {
                 if (_parent == null && this != Viewportbase)
-                    _parent = Base == null ? Viewportbase : Base;
+                    _parent = Base ?? Viewportbase;
 
                 return _parent;
             }
@@ -89,109 +103,108 @@ namespace Portraiture.PlatoUI
 
         }
 
-        public virtual UIElement AttachedToElement { get; set; } = null;
-        public virtual List<UIElement> Children { get; set; } = new List<UIElement>();
-        public virtual int Z { get; set; } = 0;
+        public UIElement AttachedToElement { get; set; } = null;
+        public List<UIElement> Children { get; set; } = new List<UIElement>();
+        public int Z { get; set; }
 
-        public virtual bool Disabled { get; set; } = false;
+        public bool Disabled { get; set; }
 
-        public virtual bool Bordered { get; set; } = false;
+        public bool Bordered { get; set; }
 
-        public virtual bool Overflow { get; set; } = true;
+        public bool Overflow { get; set; } = true;
 
-        public virtual bool OutOfBounds {
+        public bool OutOfBounds
+        {
             get
             {
                 return !Parent.Overflow && !Parent.OutOfBounds && !Parent.Bounds.Contains(Bounds);
             }
         }
-        public virtual bool Tiled {
+        public bool Tiled
+        {
             get
             {
                 return TileSize != -1;
             }
         }
 
-        public virtual float TileScale
+        public float TileScale
         {
             get
             {
                 if (Theme != null)
-                    return ((Theme.Width / 3f) / TileSize);
-                else
-                    return 1f;
+                    return Theme.Width / 3f / TileSize;
+                return 1f;
             }
         }
-        public virtual int TileSize { get; set; } = -1;
+        public int TileSize { get; set; } = -1;
 
-        public virtual Texture2D Theme { get; set; }
+        public Texture2D Theme { get; set; }
 
 
 
-        public virtual Color Color { get; set; } = Color.White;
+        public Color Color { get; set; }
 
-        public virtual float Opacity { get; set; } = 1f;
+        public float Opacity { get; set; }
 
-        public virtual int OffsetX { get; set; } = 0;
+        public int OffsetX { get; set; }
 
-        public virtual int OffsetY { get; set; } = 0;
+        public int OffsetY { get; set; }
 
-        public virtual int AddedWidth { get; set; } = 0;
+        public int AddedWidth { get; set; }
 
-        public virtual int AddedHeight { get; set; } = 0;
+        public int AddedHeight { get; set; }
 
-        public virtual bool IsContainer { get; set; } = false;
+        public bool IsContainer { get; set; }
 
-        public virtual Action<Point, bool, UIElement> HoverAction { get; set; } = null;
+        public Action<Point, bool, UIElement> HoverAction { get; set; }
 
-        public virtual Action<Point, bool, bool, bool, UIElement> ClickAction { get; set; } = null;
+        public Action<Point, bool, bool, bool, UIElement> ClickAction { get; set; }
 
-        public virtual Action<GameTime, UIElement> UpdateAction { get; set; } = null;
+        public Action<GameTime, UIElement> UpdateAction { get; set; }
 
-        public virtual Action<Keys, bool, UIElement> KeyAction { get; set; } = null;
-        public virtual Action<int, UIElement> ScrollAction { get; set; } = null;
+        public Action<Keys, bool, UIElement> KeyAction { get; set; }
+        public Action<int, UIElement> ScrollAction { get; set; }
 
-        public virtual Action<bool, UIElement> SelectAction { get; set; } = null;
+        public Action<bool, UIElement> SelectAction { get; set; }
 
-        public virtual Action<SpriteBatch, UIElement> DrawAction { get; set; } = null;
+        public Action<SpriteBatch, UIElement> DrawAction { get; set; }
 
-        public virtual Func<bool, Point, UIElement, bool> DragAction { get; set; } = null;
-        
-        public virtual Func<UIElement, UIElement, Rectangle> Positioner { get; set; } = null;
+        public Func<bool, Point, UIElement, bool> DragAction { get; set; }
 
-        public virtual Rectangle? SourceRectangle { get; set; } = null;
-        public virtual bool WasHover { get; set; } = false;
+        public Func<UIElement, UIElement, Rectangle> Positioner { get; set; }
 
-        public virtual bool Visible { get; set; } = true;
-        public virtual bool IsSelected { get; set; } = false;
+        public Rectangle? SourceRectangle { get; set; }
+        public bool WasHover { get; set; }
 
-        public virtual bool IsSelectable { get; set; } = false;
+        public bool Visible { get; set; } = true;
+        public bool IsSelected { get; set; }
 
-        public virtual string SelectionId { get; set; } = "";
+        public bool IsSelectable { get; set; }
 
-        public virtual bool IsDraggable { get; set; } = false;
+        public string SelectionId { get; set; } = "";
 
-        protected virtual Point? DragPosition { get; set; } = null;
-        public virtual Vector2 DragPoint { get; set; } = Vector2.Zero;
+        public bool IsDraggable { get; set; }
 
-        protected virtual Point? TempDragPoint { get; set; } = null;
-        public virtual bool IsBeingDragged
+        private Point? DragPosition { get; set; }
+        public Vector2 DragPoint { get; set; } = Vector2.Zero;
+
+        private Point? TempDragPoint { get; set; }
+        public bool IsBeingDragged
         {
             get
             {
                 return DragElement == this;
             }
         }
-
-        protected Rectangle? _bounds;
-        public virtual Rectangle Bounds
+        public Rectangle Bounds
         {
             get
             {
                 for (int i = 0; i < 100; i++)
                 {
-                        if (!_bounds.HasValue)
-                            CalculateBounds();
+                    if (!_bounds.HasValue)
+                        CalculateBounds();
 
                     try
                     {
@@ -206,6 +219,7 @@ namespace Portraiture.PlatoUI
                     }
                     catch
                     {
+                        // ignored
 
                     }
                 }
@@ -214,27 +228,7 @@ namespace Portraiture.PlatoUI
             }
         }
 
-        public UIElement(string id = "element", Func<UIElement, UIElement, Rectangle> positioner = null, int z = 0, Texture2D theme = null, Color? color = null, float opacity = 1f, bool container = false)
-        {
-            Id = id;
-
-            if (!color.HasValue)
-                color = Color.White;
-
-            Theme = theme;
-            Color = color.Value;
-            IsContainer = container;
-            Opacity = opacity;
-
-            Z = z;
-
-            if (positioner == null)
-                Positioner = UIHelper.Fill;
-            else
-                Positioner = positioner;
-        }
-
-        public virtual UIElement Rotated(float rotation, Vector2 origin)
+        public UIElement Rotated(float rotation, Vector2 origin)
         {
             Rotation = rotation;
             Origin = origin;
@@ -242,32 +236,31 @@ namespace Portraiture.PlatoUI
             return this;
         }
 
-        public virtual UIElement Flipped(bool horizontal = true)
+        public UIElement Flipped(bool horizontal = true)
         {
-            SpriteEffects spriteEffects = horizontal ? SpriteEffects.FlipHorizontally : SpriteEffects.FlipVertically;
             return this;
         }
 
-        public virtual UIElement WithBase(UIElement element)
+        public UIElement WithBase(UIElement element)
         {
             Base = element;
             return this;
         }
 
-        public virtual UIElement WithSourceRectangle(Rectangle sourceRectangle)
+        public UIElement WithSourceRectangle(Rectangle sourceRectangle)
         {
             SourceRectangle = sourceRectangle;
             return this;
         }
 
-        public virtual void Disable()
+        public void Disable()
         {
             Disabled = true;
 
             foreach (UIElement child in Children)
                 child.Disable();
         }
-        public virtual void Enable()
+        public void Enable()
         {
             Disabled = false;
 
@@ -275,7 +268,7 @@ namespace Portraiture.PlatoUI
                 child.Enable();
         }
 
-        public virtual void CopyBasicAttributes(ref UIElement to)
+        public void CopyBasicAttributes(ref UIElement to)
         {
             to.WithInteractivity(UpdateAction, HoverAction, ClickAction, KeyAction, ScrollAction, DrawAction);
 
@@ -284,11 +277,11 @@ namespace Portraiture.PlatoUI
 
             if (IsDraggable)
                 to.AsDraggable(DragAction, DragPoint.X, DragPoint.Y);
-           
+
             if (Tiled)
                 to.AsTiledBox(TileSize, Bordered);
 
-            if(_rotation != 0 || _origin != Vector2.Zero)
+            if (_rotation != 0 || _origin != Vector2.Zero)
                 to.Rotated(_rotation, _origin);
 
             if (_flip != SpriteEffects.None)
@@ -302,20 +295,19 @@ namespace Portraiture.PlatoUI
 
         public virtual UIElement Clone(string id = null)
         {
-            if (id == null)
-                id = Id;
+            id ??= Id;
 
-            var e = new UIElement(id, Positioner, Z, Theme, Color, Opacity, IsContainer);
+            UIElement e = new UIElement(id, Positioner, Z, Theme, Color, Opacity, IsContainer);
             CopyBasicAttributes(ref e);
             e.Base = null;
-            
+
             foreach (UIElement child in Children)
                 e.Add(child.Clone());
 
             return e;
         }
 
-        public virtual void Tranform(params object[] transformation)
+        public void Tranform(params object[] transformation)
         {
             int c = transformation.Count();
             for (int i = 0; i < c; i++)
@@ -334,7 +326,7 @@ namespace Portraiture.PlatoUI
             }
         }
 
-        public virtual void ResetTranformation()
+        public void ResetTranformation()
         {
             OffsetX = 0;
             OffsetY = 0;
@@ -342,7 +334,7 @@ namespace Portraiture.PlatoUI
             AddedHeight = 0;
         }
 
-        public virtual UIElement AsSelectable(string selctionId, Action<bool, UIElement> selectAction = null)
+        public UIElement AsSelectable(string selctionId, Action<bool, UIElement> selectAction = null)
         {
             SelectAction = selectAction;
             SelectionId = selctionId;
@@ -350,7 +342,7 @@ namespace Portraiture.PlatoUI
             return this;
         }
 
-        public virtual UIElement AsDraggable(Func<bool, Point, UIElement, bool> dragAction = null, float dragX = 0.5f, float dragY = 0.5f)
+        public UIElement AsDraggable(Func<bool, Point, UIElement, bool> dragAction = null, float dragX = 0.5f, float dragY = 0.5f)
         {
             IsDraggable = true;
             DragPoint = new Vector2(dragX, dragY);
@@ -358,40 +350,38 @@ namespace Portraiture.PlatoUI
             return this;
         }
 
-        public virtual UIElement AsTiledBox(int tilesize, bool bordered)
+        public UIElement AsTiledBox(int tilesize, bool bordered)
         {
             TileSize = tilesize;
             Bordered = bordered;
             return this;
         }
 
-        public virtual void AddTypes(params string[] types)
+        public void AddTypes(params string[] types)
         {
-            foreach (string type in Types)
-                if (!Types.Contains(type))
-                    Types.Add(type);
+            foreach (string type in Types.Where(type => !Types.Contains(type)).ToList())
+                Types.Add(type);
         }
 
-        public virtual void RemoveTypes(params string[] types)
+        public void RemoveTypes(params string[] types)
         {
-            foreach (string type in Types)
-                if (!Types.Contains(type))
-                    Types.Remove(type);
+            foreach (string type in Types.Where(type => !Types.Contains(type)).ToList())
+                Types.Remove(type);
         }
 
-        public virtual UIElement WithTypes(params string[] types)
+        public UIElement WithTypes(params string[] types)
         {
             Types.AddRange(types);
             return this;
         }
 
-        public virtual UIElement WithoutTypes()
+        public UIElement WithoutTypes()
         {
             Types.Clear();
             return this;
         }
 
-        public virtual void PerformUpdate(GameTime time)
+        public void PerformUpdate(GameTime time)
         {
             if (Disabled)
                 return;
@@ -423,24 +413,24 @@ namespace Portraiture.PlatoUI
 
             foreach (UIElement child in Children.Where(c => c.Visible))
                 Task.Run(() =>
-            {
+                {
                     child.PerformHover(point);
-            });
+                });
         }
 
-        public virtual void Deselect()
+        public void Deselect()
         {
             IsSelected = false;
             SelectAction?.Invoke(false, this);
         }
 
-        public virtual void Select()
+        public void Select()
         {
             IsSelected = true;
             SelectAction?.Invoke(true, this);
         }
 
-        public virtual void StopDrag(Point point)
+        public void StopDrag(Point point)
         {
             if (IsBeingDragged)
             {
@@ -451,7 +441,7 @@ namespace Portraiture.PlatoUI
             }
         }
 
-        public virtual void PerformClick(Point point, bool right, bool release, bool hold)
+        public void PerformClick(Point point, bool right, bool release, bool hold)
         {
             if (OutOfBounds || Disabled)
                 return;
@@ -473,7 +463,7 @@ namespace Portraiture.PlatoUI
                     TempDragPoint = null;
                     if (DragPoint == Vector2.Zero)
                     {
-                        var b = Bounds;
+                        Rectangle b = Bounds;
                         TempDragPoint = new Point(point.X - b.X, point.Y - b.Y);
                     }
                     PerformMouseMove(point);
@@ -495,11 +485,14 @@ namespace Portraiture.PlatoUI
                 {
                     child.PerformClick(point, right, release, hold);
                 }
-                catch { }
+                catch
+                {
+                    // ignored
+                }
             }
         }
 
-        public virtual void PerformMouseMove(Point point)
+        public void PerformMouseMove(Point point)
         {
             if (Disabled)
                 return;
@@ -507,23 +500,27 @@ namespace Portraiture.PlatoUI
             if (IsBeingDragged)
             {
                 DragPosition = null;
-                var b = Bounds;
-                Point p = TempDragPoint.HasValue ? TempDragPoint.Value : new Point(UIHelper.GetAbs(DragPoint.X, b.Width), UIHelper.GetAbs(DragPoint.Y, b.Height));
+                Rectangle b = Bounds;
+                Point p = TempDragPoint ?? new Point(UIHelper.GetAbs(DragPoint.X, b.Width), UIHelper.GetAbs(DragPoint.Y, b.Height));
                 DragPosition = new Point(point.X - p.X, point.Y - p.Y);
             }
 
             foreach (UIElement child in Children)
                 Task.Run(() =>
-            {
-                try { 
-                    child.PerformMouseMove(point);
-                }
-                catch { }
-            });
-                UpdateBounds();
+                {
+                    try
+                    {
+                        child.PerformMouseMove(point);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                });
+            UpdateBounds();
         }
 
-        public virtual void PerformKey(Keys key, bool released)
+        public void PerformKey(Keys key, bool released)
         {
             if (Disabled)
                 return;
@@ -532,13 +529,16 @@ namespace Portraiture.PlatoUI
 
             foreach (UIElement child in Children)
                 Task.Run(() =>
-            {
-                try
                 {
-                    child.PerformKey(key, released);
-                }
-                catch { }
-            });
+                    try
+                    {
+                        child.PerformKey(key, released);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                });
         }
 
         public virtual void PerformScroll(int direction)
@@ -552,7 +552,7 @@ namespace Portraiture.PlatoUI
                 child.PerformScroll(direction);
         }
 
-        public virtual void PerfromDrawAction(SpriteBatch b)
+        public void PerfromDrawAction(SpriteBatch b)
         {
             if (OutOfBounds)
                 return;
@@ -562,10 +562,10 @@ namespace Portraiture.PlatoUI
             foreach (UIElement child in Children)
                 child.PerfromDrawAction(b);
         }
-        
-        public virtual UIElement WithInteractivity(Action<GameTime, UIElement> update = null, Action<Point, bool, UIElement> hover = null, Action<Point, bool,bool,bool, UIElement> click = null, Action<Keys,bool, UIElement> keys = null, Action<int,UIElement>scroll = null, Action<SpriteBatch,UIElement> draw = null)
+
+        public UIElement WithInteractivity(Action<GameTime, UIElement> update = null, Action<Point, bool, UIElement> hover = null, Action<Point, bool, bool, bool, UIElement> click = null, Action<Keys, bool, UIElement> keys = null, Action<int, UIElement> scroll = null, Action<SpriteBatch, UIElement> draw = null)
         {
-            if(update != null)
+            if (update != null)
                 UpdateAction = update;
 
             if (hover != null)
@@ -586,10 +586,10 @@ namespace Portraiture.PlatoUI
             return this;
         }
 
-        public virtual UIElement WithoutInteractivity(bool update = false, bool hover = false, bool click = false, bool keys = false, bool scroll = false, bool draw = false)
+        public UIElement WithoutInteractivity(bool update = false, bool hover = false, bool click = false, bool keys = false, bool scroll = false, bool draw = false)
         {
             UpdateAction = update ? null : UpdateAction;
-            HoverAction = hover ? null :HoverAction;
+            HoverAction = hover ? null : HoverAction;
             ClickAction = click ? null : ClickAction;
             KeyAction = keys ? null : KeyAction;
             ScrollAction = scroll ? null : ScrollAction;
@@ -598,17 +598,16 @@ namespace Portraiture.PlatoUI
             return this;
         }
 
-        public virtual void CalculateBounds()
+        public void CalculateBounds()
         {
 
-            if (Positioner == null)
-                Positioner = UIHelper.Fill;
+            Positioner ??= UIHelper.Fill;
             Rectangle b = Positioner(this, Parent);
             _bounds = b;
 
         }
 
-        public virtual void UpdateBounds(bool children = true)
+        public void UpdateBounds(bool children = true)
         {
             _bounds = null;
             CalculateBounds();
@@ -616,55 +615,43 @@ namespace Portraiture.PlatoUI
             if (children)
                 foreach (UIElement child in Children)
                     Task.Run(() =>
-            {
+                    {
 
-                child.UpdateBounds();
-            });
+                        child.UpdateBounds();
+                    });
         }
 
-        public virtual IEnumerable<UIElement> GetSelected(string selectionId = null)
+        public IEnumerable<UIElement> GetSelected(string selectionId = null)
         {
             if (IsSelected && (selectionId == null || selectionId == SelectionId))
                 yield return this;
 
-            foreach (UIElement child in Children)
-                foreach (UIElement find in child.GetSelected(selectionId))
-                    yield return find;
+            foreach (UIElement find in Children.SelectMany(child => child.GetSelected(selectionId)))
+                yield return find;
         }
 
-        public virtual bool HasTypes(bool any, params string[] types)
+        public bool HasTypes(bool any, params string[] types)
         {
-            bool hasType = true;
-
-            foreach (string type in types)
-            {
-                if (!any)
-                    hasType = Types.Contains(type) && hasType;
-                else
-                    hasType = Types.Contains(type) || hasType;
-            }
-
-
-            return hasType;
+            return types.Where(_ => !any).Aggregate(true, (current, type) => Types.Contains(type) && current);
         }
 
-        public virtual IEnumerable<UIElement> GetElementsByType(bool any, params string[] types)
+        public IEnumerable<UIElement> GetElementsByType(bool any, params string[] types)
         {
             if (HasTypes(any, types))
                 yield return this;
 
             foreach (UIElement child in Children)
-                foreach (UIElement find in child.GetElementsByType(any,types))
+                foreach (UIElement find in child.GetElementsByType(any, types))
                     yield return find;
         }
 
-        public virtual UIElement GetElementById(string id)
+        public UIElement GetElementById(string id)
         {
             if (Id == id)
                 return this;
 
             foreach (UIElement child in Children)
-                if (child.GetElementById(id) is UIElement find)
+                if (child.GetElementById(id) is { } find)
                     return find;
 
             return null;
@@ -672,21 +659,20 @@ namespace Portraiture.PlatoUI
 
         public static UIElement GetContainer(string id = "element", int z = 0, Func<UIElement, UIElement, Rectangle> positioner = null, float opacity = 1f)
         {
-            return new UIElement(id, positioner,z,null,Color.White, opacity, container: true);
+            return new UIElement(id, positioner, z, null, Color.White, opacity, true);
         }
 
-        public static UIElement GetImage(Texture2D image, Color? color, string id = "element",float opacity = 1f,  int z = 0, Func<UIElement, UIElement, Rectangle> positioner = null)
+        public static UIElement GetImage(Texture2D image, Color? color, string id = "element", float opacity = 1f, int z = 0, Func<UIElement, UIElement, Rectangle> positioner = null)
         {
             return new UIElement(id, positioner, z, image, color, opacity);
         }
 
         public virtual void Add(UIElement element, bool disattach = true)
         {
-            if(disattach)
+            if (disattach)
                 element.Disattach();
             element.Parent = this;
-            if (element.Base == null)
-                element.Base = Base;
+            element.Base ??= Base;
             Children.Add(element);
         }
 
@@ -695,21 +681,18 @@ namespace Portraiture.PlatoUI
             Children.Remove(element);
         }
 
-        public virtual void Disattach()
+        public void Disattach()
         {
-            if(Parent != null)
+            if (Parent != null)
                 Parent.Children.Remove(this);
             Parent = null;
         }
 
-        public virtual void Clear(UIElement element = null)
+        public void Clear(UIElement element = null)
         {
             Children.Clear();
             if (element != null)
                 Children.Add(element);
         }
-
-       
-
     }
 }
