@@ -93,9 +93,10 @@ namespace Portraiture
 
         private void LoadDefaultAsset(object _, AssetRequestedEventArgs ev)
         {
-            if (!helper.ModRegistry.IsLoaded("tlitookilakin.HDPortraits"))
-                if (ev.Name.IsEquivalentTo("Mods/HDPortraits"))
-                    ev.LoadFrom(() => hdpData, AssetLoadPriority.Low);
+            if (helper.ModRegistry.IsLoaded("tlitookilakin.HDPortraits"))
+                return;
+            if (ev.Name.IsEquivalentTo("Mods/HDPortraits"))
+                ev.LoadFrom(() => hdpData, AssetLoadPriority.Low);
         }
 
         public static void drawPortrait(DialogueBox __instance, SpriteBatch b, int xPos, int yPos, int boxWidth, int boxHeight)
