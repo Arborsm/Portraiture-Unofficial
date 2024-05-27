@@ -7,17 +7,12 @@ namespace Portraiture
         public SButton changeKey { get; set; } = SButton.P;
         public SButton menuKey { get; set; } = SButton.M;
         public SButton fixPortraitKey { get; set; } = SButton.O;
-
         public SButton styleChangeKey { get; set; } = SButton.I;
-
         public bool ShowPortraitsAboveBox { get; set; } = false;
-
         public int MaxAbovePortraitPercent { get; set; } = 80;
-
         public bool SideLoadHDPWhenNotInstalled { get; set; } = false;
-
         public bool SideLoadHDPWhenInstalled { get; set; } = false;
-
+        public bool isFestivalLower { get; set; } = true;
         public bool HPDOption { get; set; } = true;
         public string active { get; set; } = "none";
 

@@ -53,7 +53,7 @@ namespace Portraiture
                 if (s.ForcedSourceRectangle.HasValue)
                     newSR = s.ForcedSourceRectangle.Value;
 
-                if (PortraitureMod.config.ShowPortraitsAboveBox && PortraitureMod.portaitBox is { } rect)
+                if (PortraitureMod.config.ShowPortraitsAboveBox && PortraitureMod.portraitBox is { } rect)
                 {
                     int maxWidth = (int)((Game1.uiViewport.Height - rect.Height) * (PortraitureMod.config.MaxAbovePortraitPercent / 100f));
                     newDestination = new Rectangle(rect.X + rect.Width - maxWidth, rect.Y - maxWidth, maxWidth, maxWidth);

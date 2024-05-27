@@ -15,13 +15,14 @@ namespace Portraiture
 {
     public class PortraitureMod : Mod
     {
-        public static IModHelper helper;
+        internal static IModHelper helper;
         private static Mod instance;
-        internal static Rectangle? portaitBox;
+        internal static Rectangle? portraitBox;
         internal static PConfig config;
         internal static int WindowHeight = 720;
         private static bool isPortraitBoxOrg;
-        public static Dictionary<string, MetadataModel> hdpdata = new Dictionary<string, MetadataModel>();
+        internal static Dictionary<string, MetadataModel> hdpData = new Dictionary<string, MetadataModel>();
+        internal static IDictionary<string, string> festivalDates;
         private float displayAlpha;
         private float fixDisplayAlpha;
         private float unfixDisplayAlpha;
@@ -35,7 +36,7 @@ namespace Portraiture
             displayAlpha = 0;
             fixDisplayAlpha = 0;
             unfixDisplayAlpha = 0;
-
+            festivalInit();
             if (!Directory.Exists(customContentFolder))
                 Directory.CreateDirectory(customContentFolder);
 
@@ -55,6 +56,31 @@ namespace Portraiture
 
         }
 
+        private static void festivalInit()
+        {
+            festivalDates = Game1.content.Load<Dictionary<string, string>>(@"Data\Festivals\FestivalDates", LocalizedContentManager.LanguageCode.en);
+            foreach (string key in festivalDates.Keys)
+            {
+                if (festivalDates[key].Contains(' '))
+                {
+                    festivalDates[key] = festivalDates[key].Replace(" ", "");
+                }
+                if (festivalDates[key].Contains('\''))
+                {
+                    festivalDates[key] = festivalDates[key].Replace("'", "");
+                }
+                festivalDates[key] = festivalDates[key] switch
+                {
+                    "EggFestival" => "EggF",
+                    "DanceoftheMoonlightJellies" => "Jellies",
+                    "StardewValleyFair" => "Fair",
+                    "FestivalofIce" => "Ice",
+                    "FeastoftheWinterStar" => "WinterStar",
+                    _ => festivalDates[key]
+                };
+            }
+        }
+
         private void harmonyFix()
         {
             // ReSharper disable once LocalVariableHidesMember
@@ -69,12 +95,12 @@ namespace Portraiture
         {
             if (!helper.ModRegistry.IsLoaded("tlitookilakin.HDPortraits"))
                 if (ev.Name.IsEquivalentTo("Mods/HDPortraits"))
-                    ev.LoadFrom(() => hdpdata, AssetLoadPriority.Low);
+                    ev.LoadFrom(() => hdpData, AssetLoadPriority.Low);
         }
 
         public static void drawPortrait(DialogueBox __instance, SpriteBatch b, int xPos, int yPos, int boxWidth, int boxHeight)
         {
-            portaitBox = new Rectangle(xPos, yPos, boxWidth, boxHeight);
+            portraitBox = new Rectangle(xPos, yPos, boxWidth, boxHeight);
 
             if (config?.ShowPortraitsAboveBox == true && b is not null && (__instance?.isPortraitBox() == true || isPortraitBoxOrg))
             {
@@ -118,12 +144,11 @@ namespace Portraiture
 
         private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
         {
-            if (e.IsMultipleOf(15))
-            { // quarter second
-                displayAlpha = Math.Max(displayAlpha - 0.1f, 0);
-                fixDisplayAlpha = Math.Max(fixDisplayAlpha - 0.1f, 0);
-                unfixDisplayAlpha = Math.Max(unfixDisplayAlpha - 0.1f, 0);
-            }
+            if (!e.IsMultipleOf(15))
+                return; // quarter second
+            displayAlpha = Math.Max(displayAlpha - 0.1f, 0);
+            fixDisplayAlpha = Math.Max(fixDisplayAlpha - 0.1f, 0);
+            unfixDisplayAlpha = Math.Max(unfixDisplayAlpha - 0.1f, 0);
         }
 
         private void drawInfoBox(string text, SpriteBatch b, int x, int y, float alpha)
@@ -149,50 +174,49 @@ namespace Portraiture
 
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
-            if ((e.Button == config.styleChangeKey || e.Button == config.changeKey || e.Button == config.fixPortraitKey || e.Button == config.menuKey) && Game1.activeClickableMenu is DialogueBox d && isPortraitBoxOrg && Game1.currentSpeaker is { } cs)
+            if ((e.Button != config.styleChangeKey && e.Button != config.changeKey && e.Button != config.fixPortraitKey && e.Button != config.menuKey) || Game1.activeClickableMenu is not DialogueBox d || !isPortraitBoxOrg || Game1.currentSpeaker is not { } cs)
+                return;
+            if (d.width < 107 * Game1.pixelZoom * 3 / 2 || Helper.Reflection.GetField<bool>(d, "transitioning").GetValue() || !isPortraitBoxOrg || Helper.Reflection.GetField<bool>(d, "isQuestion").GetValue())
+                return;
+
+            if (e.Button == config.changeKey)
             {
-                if (d.width < 107 * Game1.pixelZoom * 3 / 2 || Helper.Reflection.GetField<bool>(d, "transitioning").GetValue() || !isPortraitBoxOrg || Helper.Reflection.GetField<bool>(d, "isQuestion").GetValue())
-                    return;
 
-                if (e.Button == config.changeKey)
+                if (TextureLoader.presets.Presets.Any(p => p.Character == cs.Name))
                 {
-
-                    if (TextureLoader.presets.Presets.Any(p => p.Character == cs.Name))
-                    {
-                        displayAlpha = 0;
-                        unfixDisplayAlpha = 0;
-                        fixDisplayAlpha = 2;
-                    }
-                    else
-                    {
-                        TextureLoader.nextFolder();
-                        displayAlpha = 2;
-                    }
-                }
-                else if (e.Button == config.styleChangeKey)
-                {
-                    config.ShowPortraitsAboveBox = !config.ShowPortraitsAboveBox;
-                    helper.WriteConfig(config);
-
-                }
-                else if (e.Button == config.fixPortraitKey)
-                {
-                    if (TextureLoader.presets.Presets.FirstOrDefault(p => p.Character == cs.Name) is not null)
-                    {
-                        TextureLoader.setPreset(cs.Name, null);
-                        displayAlpha = 0;
-                        fixDisplayAlpha = 0;
-                        unfixDisplayAlpha = 2;
-                    }
-                    else
-                    {
-                        TextureLoader.setPreset(cs.Name, TextureLoader.getFolderName());
-                        fixDisplayAlpha = 2;
-                    }
+                    displayAlpha = 0;
+                    unfixDisplayAlpha = 0;
+                    fixDisplayAlpha = 2;
                 }
                 else
-                    MenuLoader.OpenMenu(Game1.activeClickableMenu);
+                {
+                    TextureLoader.nextFolder();
+                    displayAlpha = 2;
+                }
             }
+            else if (e.Button == config.styleChangeKey)
+            {
+                config.ShowPortraitsAboveBox = !config.ShowPortraitsAboveBox;
+                helper.WriteConfig(config);
+
+            }
+            else if (e.Button == config.fixPortraitKey)
+            {
+                if (TextureLoader.presets.Presets.FirstOrDefault(p => p.Character == cs.Name) is not null)
+                {
+                    TextureLoader.setPreset(cs.Name, null);
+                    displayAlpha = 0;
+                    fixDisplayAlpha = 0;
+                    unfixDisplayAlpha = 2;
+                }
+                else
+                {
+                    TextureLoader.setPreset(cs.Name, TextureLoader.getFolderName());
+                    fixDisplayAlpha = 2;
+                }
+            }
+            else
+                MenuLoader.OpenMenu(Game1.activeClickableMenu);
 
         }
 
@@ -219,17 +243,16 @@ namespace Portraiture
 
         private void OnRenderedActiveMenu(object sender, RenderedActiveMenuEventArgs e)
         {
-            if (Game1.activeClickableMenu is DialogueBox d && (d.isPortraitBox() || isPortraitBoxOrg) && Game1.currentSpeaker is not null)
-            {
-                int x = Helper.Reflection.GetField<int>(d, "x").GetValue();
-                int y = Helper.Reflection.GetField<int>(d, "y").GetValue();
-                int width = Helper.Reflection.GetField<int>(d, "width").GetValue();
-                portaitBox = new Rectangle(x, y, width, width);
+            if (Game1.activeClickableMenu is not DialogueBox d || (!d.isPortraitBox() && !isPortraitBoxOrg) || Game1.currentSpeaker is null)
+                return;
+            int x = Helper.Reflection.GetField<int>(d, "x").GetValue();
+            int y = Helper.Reflection.GetField<int>(d, "y").GetValue();
+            int width = Helper.Reflection.GetField<int>(d, "width").GetValue();
+            portraitBox = new Rectangle(x, y, width, width);
 
-                drawInfoBox(TextureLoader.getFolderName(), Game1.spriteBatch, x, y, displayAlpha);
-                drawInfoBox("Fixed!", Game1.spriteBatch, x, y, fixDisplayAlpha);
-                drawInfoBox("Unfixed!", Game1.spriteBatch, x, y, unfixDisplayAlpha);
-            }
+            drawInfoBox(TextureLoader.getFolderName(), Game1.spriteBatch, x, y, displayAlpha);
+            drawInfoBox("Fixed!", Game1.spriteBatch, x, y, fixDisplayAlpha);
+            drawInfoBox("Unfixed!", Game1.spriteBatch, x, y, unfixDisplayAlpha);
         }
     }
 }

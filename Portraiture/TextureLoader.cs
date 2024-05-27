@@ -7,6 +7,7 @@ using StardewValley;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 namespace Portraiture
@@ -112,21 +113,31 @@ namespace Portraiture
                     return null;
                 }
             }
-
-
-            string season = Game1.currentSeason?.ToLower() ?? "spring";
-
-
+            
+            string season = Game1.currentSeason ?? "Spring";
+            if (PortraitureMod.config.isFestivalLower) season = season.ToLower();
+            
             if (presets.Presets.FirstOrDefault(p => p.Character == name) is { } preset && folders.Contains(preset.Portraits))
                 folder = preset.Portraits;
 
-
+            if (Game1.isFestival() || Game1.CurrentEvent != null && Game1.CurrentEvent.isWedding)
+            {
+                string festival = GetDayEvent();
+                if (pTextures.ContainsKey(folder + ">" + name + "_" + festival))
+                    return pTextures[folder + ">" + name + "_" + festival];
+            }
+            
             if (Game1.currentLocation is { Name: not null } gl)
             {
                 if (pTextures.ContainsKey(folder + ">" + name + "_" + gl.Name + "_" + season))
                     return pTextures[folder + ">" + name + "_" + gl.Name + "_" + season];
                 if (pTextures.ContainsKey(folders[activeFolder] + ">" + name + "_" + gl.Name))
                     return pTextures[folder + ">" + name + "_" + gl.Name];
+            }
+
+            if (pTextures.ContainsKey(folder + ">" + name + "_" + season + "_Indoor") && pTextures.ContainsKey(folder + ">" + name + "_" + season + "_Outdoor"))
+            {
+                return Game1.currentLocation.IsOutdoors ? pTextures[folder + ">" + name + "_" + season + "_Outdoor"] : pTextures[folder + ">" + name + "_" + season + "_Indoor"];
             }
 
             if (pTextures.ContainsKey(folder + ">" + name + "_" + season))
@@ -350,8 +361,16 @@ namespace Portraiture
             }
             PortraitureMod.helper.WriteConfig(PortraitureMod.config);
         }
+        
+        public static string GetDayEvent()
+        {
+            if (SaveGame.loaded?.weddingToday ?? Game1.weddingToday)
+                return "wedding";
+            
+            string festival = PortraitureMod.festivalDates.TryGetValue($"{Game1.currentSeason}{Game1.dayOfMonth}", out string festivalName) ? festivalName : "";
+            return festival;
+        }
     }
-
 
     public class SmapiManifest
     {

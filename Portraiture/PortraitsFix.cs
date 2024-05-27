@@ -41,9 +41,9 @@ namespace Portraiture
             }
 
             if (__state && __result.Width > 128)
-                __result = ScaledTexture2D.FromTexture(__result, __result, __result.Width == 256 && __result.Height == 256 ? __result.Width / 64f : __result.Width / 2 / 64f);
+                __result = ScaledTexture2D.FromTexture(__result, __result, __result.Width == 256 && __result.Height == 256 ? __result.Width / 64f : __result.Width / 2f / 64f);
 
-            if (!(__result is ScaledTexture2D) && __state && PortraitureMod.config.ShowPortraitsAboveBox)
+            if (__result is not ScaledTexture2D && __state && PortraitureMod.config.ShowPortraitsAboveBox)
                 __result = ScaledTexture2D.FromTexture(__result, __result, 1);
         }
     }
